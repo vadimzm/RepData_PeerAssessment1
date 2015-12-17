@@ -7,19 +7,96 @@ output:
 
 
 ## Loading and preprocessing the data
-
+```{r warning=F}
+library(lattice)
+library(knitr)
+data<-read.csv("activity.csv")
+activity <- data[complete.cases(data),]
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r warning=F}
+total_steps <- aggregate(steps ~ date, activity, sum)
+names(total_steps)[2] <- "total_steps"
+hist(total_steps$total_steps, col="grey", 
+main="Total # of steps for each day", 
+xlab="Total # of steps", breaks=50)
+```
 
+## mean
+```{r warning=F}
+mean(total_steps$total_steps)
+```
 
+## median
+```{r warning=F}
+median(total_steps$total_steps)
+```
 
 ## What is the average daily activity pattern?
+```{r warning=F}
+average <- aggregate(steps ~ interval, activity, mean)
+names(average)[2] <- "mean_steps"
 
-
+plot(
+        x = average$interval,
+        y = average$mean_steps,
+        type = "l",
+        main = "Time Series Plot of the 5-Minute Interval and the Average # of steps",
+        xlab = "5-Minute Interval",
+        ylab = "Average # of steps"
+)
+```
 
 ## Imputing missing values
+```{r warning=F}
+nrow(data[is.na(data$steps),])
 
+new_activity <- merge(data, average, by = 'interval', all.y = F)
 
+new_activity$steps[is.na(new_activity$steps)] <- as.integer(
+        round(new_activity$mean_steps[is.na(new_activity$steps)]))
+
+new_total <- aggregate(steps ~ date, new_activity, sum)
+names(new_total)[2] <- "sum_steps"
+
+hist(
+        new_total$sum_steps,
+        col = "grey",
+        main = "Total # of steps for each day",
+        xlab = "Total # of steps",
+        breaks = 50
+)
+```
+
+## mean
+```{r warning=F}
+mean(new_total$sum_steps)
+```
+## median
+```{r warning=F}
+median(new_total$sum_steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r warning=F}
+weekends <- weekdays(as.Date(new_activity$date)) %in% c("Saturday", "Sunday")
+
+new_activity$daytype <- "weekday"
+new_activity$daytype[weekends == T] <- "weekend"
+
+new_activity$daytype <- as.factor(new_activity$daytype)
+new_average <- aggregate(steps ~ interval + daytype, new_activity, mean)
+names(new_average)[3] <- "mean_steps"
+
+xyplot(
+        mean_steps ~ interval | daytype,
+        new_average,
+        type = "l",
+        layout = c(1,2),
+        main = "Time Series Plot of the 5-Minute Interval and the Average # of steps",
+        xlab = "5-Minute Interval",
+        ylab = "Average # of steps"
+)
+```
